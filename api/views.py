@@ -1,8 +1,8 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import Routine
-from .serializers import RoutineSerializer
+from .models import Routine, Todo
+from .serializers import RoutineSerializer, TodoSerializer
 from rest_framework import status
 
 # Create your views here.
@@ -48,8 +48,51 @@ def routine_detail(request, pk):
         routine.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def todo_view(request):
+    if request.method == 'GET':
+        todos = Todo.objects.filter(user=request.user)
+        serializer = TodoSerializer(todos, many=True)
+        return Response(serializer.data)
+    elif request.method == 'POST':
+        serializer = TodoSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def todo_detail(request, pk):
+    try:
+        todo = Todo.objects.get(pk=pk, user=request.user)
+    except Todo.DoesNotExist:
+        return Response({"error": "Todo not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = TodoSerializer(todo)
+        return Response(serializer.data)
+
+    elif request.method in ['PUT', 'PATCH']:
+        serializer = TodoSerializer(todo, data=request.data, partial=(request.method == 'PATCH'))
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE':
+        todo.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
 @api_view(['GET'])
 def all_routines(request):
         routines = Routine.objects.all()
         serializer = RoutineSerializer(routines, many=True)
+        return Response(serializer.data)
+
+@api_view(['GET'])
+def all_todos(request):
+        todos = Todo.objects.all()
+        serializer = TodoSerializer(todos, many=True)
         return Response(serializer.data)

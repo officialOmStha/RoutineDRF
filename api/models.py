@@ -51,3 +51,12 @@ class Routine(models.Model):
 
     def __str__(self):
         return self.title
+    
+class Todo(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="todos")
+    title = models.CharField(max_length=200)
+    recursive = models.BooleanField(default=False)
+    complete = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateField(auto_now=True)
